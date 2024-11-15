@@ -1,0 +1,60 @@
+#version 460 core
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in; // invocations
+
+layout(binding = 0, r32ui) uniform uimage2D out_pixel_count;
+
+uniform float u_time_elapsed;
+
+ivec2 ClampCoord(ivec2 coord) {
+    return clamp(coord, ivec2(0), ivec2(imageSize(out_pixel_count)));
+}
+
+vec2 AffineTransform(vec2 coord) {
+    return vec2(sin(coord.x*3.0), coord.y + cos(coord.y*5.0));
+}
+
+#define PI 3.14
+vec2 LinearTransform(vec2 coord) {
+    float theta = (45.f + u_time_elapsed*0.01) * PI / 180.0;
+
+    mat2 rotation = mat2(
+        cos(theta), -sin(theta),
+        sin(theta), cos(theta)
+    );
+
+    return rotation * coord;
+}
+
+vec2 FinalTransform(vec2 coord) {
+    return coord * 0.55;
+}
+
+vec2 Ifs(vec2 coord) {
+    // Converge a bit first
+    for (uint i = 0; i < 20; i++) {
+        coord = AffineTransform(coord);
+        coord = LinearTransform(coord);
+        coord = FinalTransform(coord);
+    }
+
+    for (uint i = 0; i < 8; i++) {
+        coord = AffineTransform(coord);
+        coord = LinearTransform(coord);
+        coord = FinalTransform(coord);
+        imageAtomicAdd(out_pixel_count, ClampCoord(ivec2((coord + 1.0) * 0.5 * vec2(imageSize(out_pixel_count)))), 1);
+    }
+
+    return coord;
+}
+
+void main() {
+#ifdef CLEAR
+    imageStore(out_pixel_count, ivec2(gl_GlobalInvocationID.xy), uvec4(0));
+#else
+    vec2 coord = gl_GlobalInvocationID.xy / vec2(imageSize(out_pixel_count));
+
+    coord = 2.0 * (coord - 0.5);
+    Ifs(coord);
+#endif
+}
