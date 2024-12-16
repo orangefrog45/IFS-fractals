@@ -2,10 +2,28 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in; // invocations
 
-layout(binding = 0, r32ui) uniform uimage2D in_pixel_count;
-layout(binding = 1, rgba16f) uniform image2D out_colour;
+layout(binding = 0, r32ui) uniform uimage2D in_density;
+layout(binding = 1, r32ui) uniform uimage2D in_colour;
+layout(binding = 2, rgba16f) uniform image2D out_colour;
+layout(binding = 3, rgba8) uniform image2D out_colour_2;
 
 void main() {
-    uint val = imageLoad(in_pixel_count, ivec2(gl_GlobalInvocationID.xy)).r;
-    imageStore(out_colour, ivec2(gl_GlobalInvocationID.xy), vec4(0.0, abs(sin(val*0.01)), abs(cos(val*0.01))*val, 1.0));
+    uint col_val = imageLoad(in_colour, ivec2(gl_GlobalInvocationID.xy)).r;
+    uint density_val = imageLoad(in_density, ivec2(gl_GlobalInvocationID.xy)).r;
+    
+    vec3 col = vec3(0);
+
+    uint r = (col_val >> 24);
+    uint g = ((col_val >> 16) & 0x000000FF);
+    uint b = ((col_val >> 8) & 0x000000FF);
+
+    col = vec3(r / 255.0, g / 255.0, b / 255.0);
+
+    if (density_val != 0)
+        col *= log(density_val) / density_val;
+
+        col *= 15.0;
+   //col = abs(vec3(sin(val*0.01), sin(log(val*10.01)), cos(val*0.001)));
+    imageStore(out_colour, ivec2(gl_GlobalInvocationID.xy), vec4(col, 1.0));
+    imageStore(out_colour_2, ivec2(gl_GlobalInvocationID.xy), vec4(col, 1.0));
 }
