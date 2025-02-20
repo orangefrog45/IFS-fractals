@@ -7,6 +7,8 @@ layout(binding = 1, r32ui) uniform uimage2D in_colour;
 layout(binding = 2, rgba16f) uniform image2D out_colour;
 layout(binding = 3, rgba8) uniform image2D out_colour_2;
 
+uniform float u_brightness;
+
 void main() {
     uint col_val = imageLoad(in_colour, ivec2(gl_GlobalInvocationID.xy)).r;
     uint density_val = imageLoad(in_density, ivec2(gl_GlobalInvocationID.xy)).r;
@@ -22,7 +24,7 @@ void main() {
     if (density_val != 0)
         col *= log(density_val) / density_val;
 
-        col *= 15.0;
+    col *= 15.0 * u_brightness;
    //col = abs(vec3(sin(val*0.01), sin(log(val*10.01)), cos(val*0.001)));
     imageStore(out_colour, ivec2(gl_GlobalInvocationID.xy), vec4(col, 1.0));
     imageStore(out_colour_2, ivec2(gl_GlobalInvocationID.xy), vec4(col, 1.0));

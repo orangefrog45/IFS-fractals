@@ -1,5 +1,8 @@
 #pragma once
 #include "EngineAPI.h"
+#include "Ifs2D.h"
+#include "Ifs3D.h"
+
 
 namespace ORNG {
 	class GameLayer : public Layer {
@@ -11,25 +14,20 @@ namespace ORNG {
 		void OnImGuiRender() override;
 
 		void SaveVariant(const std::string& name);
-
-
-		struct Resources {
-			void Init(glm::uvec2 resolution);
-
-			std::unique_ptr<Texture2D> p_output_tex = nullptr;
-			std::unique_ptr<Texture2D> p_output_tex_8bpp = nullptr;
-
-			std::unique_ptr<Texture2D> p_ifs_density_tex = nullptr;
-			std::unique_ptr<Texture2D> p_ifs_col_tex = nullptr;
-		};
-
-		void RenderIFS(GameLayer::Resources& output);
-
 	private:
-		ShaderVariants* mp_ifs_compute = nullptr;
-		ShaderVariants* mp_ifs_transfer = nullptr;
+		float m_brightness = 1.f;
 
-		Resources m_res;
+		bool m_rendering_2d = true;
+
+		Ifs3D m_ifs_3d;
+		Ifs3D::Resources m_3d_ifs_resources;
+
+		Ifs2D m_ifs_2d;
+		Ifs2D::Resources m_2d_ifs_resources;
+
+		Scene m_scene;
+		SceneEntity* p_cam = nullptr;
+		RenderGraph m_render_graph;
+		Framebuffer m_render_framebuffer;
 	};
-
 }

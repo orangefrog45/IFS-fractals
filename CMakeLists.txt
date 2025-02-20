@@ -5,7 +5,12 @@ project(GAME_LAYER)
 add_executable(GAME_LAYER
 src/main.cpp
 src/GameLayer.cpp
- "headers/GameLayer.h")
+"src/Ifs3D.cpp"
+"src/Ifs2D.cpp"
+"headers/Ifs2D.h"
+"headers/Ifs3D.h"
+"headers/GameLayer.h"
+)
 
 target_include_directories(GAME_LAYER PUBLIC
 "headers"

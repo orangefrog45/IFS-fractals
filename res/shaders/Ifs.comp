@@ -11,6 +11,7 @@ ivec2 ClampCoord(ivec2 coord) {
     return clamp(coord, ivec2(0), ivec2(imageSize(out_density)));
 }
 
+
 vec2 AffineTransform(vec2 coord) {
     float l2 = dot(coord, coord);
     return vec2(coord.x * sin(l2) - coord.y * cos(l2), coord.x * cos(l2) + coord.y * sin(l2));
@@ -72,34 +73,37 @@ vec2 f1(vec2 coord) {
 
     for (int i = 1; i < 5; i++) {
         float e = float(i);
-        coord = RotateTransform(coord, PI / i);
-        coord = Horseshoe(coord / (i*10.0));
-        coord = Horseshoe(coord / (i*5.0));
+        for (int y = 1; y < 5; y++) {
+         coord = Horseshoe(coord / (i*10.25 / y));
+         coord *= 0.75;
+        }
     }
 
     return coord;
 }
 
 vec2 f2(vec2 coord) {
-    coord = Horseshoe(coord*10*tan(coord.x*1.5));
-    coord = Horseshoe(coord*35*tan(coord.y*7.5));
+    coord = Horseshoe(coord*10*tan(coord.x));
+    coord = Popcorn(coord*10.1*tan(coord.y), 0.5, 1.0);
+    coord = Popcorn(coord*0.0001, 10.0, 1.5);
 
     return coord;
 }
 
 vec2 f3(vec2 coord) {
-    coord = RotateTransform(coord, PI*0.33);
+    coord = RotateTransform(coord, PI);
+    coord = sin(coord*6);
 
     return coord;
 }
 
 vec2 FinalTransform(vec2 coord) {
-    coord = RotateTransform(coord, PI*0.5) / pow(dot(coord, coord), 0.61);
-    return coord.xy * 0.2;
+    coord = RotateTransform(coord, PI*0.5) / pow(dot(coord, coord), 0.57);
+    return coord.xy * 0.45;
 }
 
 vec2 Ifs(vec2 coord) {
-    const float probabilities[] = {0.4, 0.4, 0.15, 0.05};
+    const float probabilities[] = {0.4, 0.3, 0.15, 0.25};
     float cdf[4];
 
     {
@@ -129,7 +133,7 @@ vec2 Ifs(vec2 coord) {
         coord = FinalTransform(coord);
     } 
 
-    for (uint i = 0; i < 600; i++) {
+    for (uint i = 0; i < 1000; i++) {
         float r = rand(vec2(coord.x, coord.y + i + 50));
         vec3 col;
 
@@ -139,17 +143,21 @@ vec2 Ifs(vec2 coord) {
         }
         else if (r < cdf[1]) {
             coord = f1(coord);
-            col = vec3(0, 1, 0);
+            col = vec3(0, 0.8, 0.3);
         }
         else if (r < cdf[2]) {
             coord = f2(coord);
-            col = vec3(0.1);
+            col = vec3(0.15, 0.3, 0.8);
         } else if (r < cdf[3]) {
             coord = f3(coord);
-            col = vec3(0.0, 0.0, 0);
+            col = vec3(0.0, 0.2, 0.6);
         }
 
         coord = FinalTransform(coord);
+        ivec2 write_coord = ivec2((coord + 1.0) * 0.5 * vec2(imageSize(out_colour)));
+
+        if (any(lessThan(write_coord, vec2(0))) || any(greaterThan(write_coord, imageSize(out_colour)))) continue;
+
         uint val = imageAtomicOr(out_colour, ClampCoord(ivec2((coord + 1.0) * 0.5 * vec2(imageSize(out_colour)))), 0u);
         vec3 pixel_col = UnpackVec3(val);
         pixel_col = (pixel_col + col) * 0.5;
