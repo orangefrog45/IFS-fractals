@@ -1,1 +1,7 @@
-configs/*
+*.lib
+*.pdb
+*.ilk
+*.exp
+*.obj
+.vs
+out
