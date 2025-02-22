@@ -1,7 +1,5 @@
-*.lib
-*.pdb
-*.ilk
-*.exp
-*.obj
 .vs
+bin
 out
+log.txt
+imgui.ini

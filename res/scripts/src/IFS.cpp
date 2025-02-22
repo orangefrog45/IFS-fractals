@@ -62,9 +62,6 @@ extern "C" {
 
 			Window::SetCursorPos(mouse_lock_pos.x, mouse_lock_pos.y);
 		}
-
-		if (Window::GetInput().IsKeyPressed('f'))
-			Renderer::GetShaderLibrary().ReloadShaders();
 	}
 
 	void IFS::OnDestroy() {
@@ -75,16 +72,6 @@ extern "C" {
 	void IFS::OnRender() {
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
-
-		if (Window::GetInput().IsKeyPressed('g')) {
-			if (m_rendering_2d) {
-				m_ifs_2d.RenderIFS(m_2d_ifs_resources, m_brightness);
-				m_render_graph.Execute();
-			}
-			else {
-				m_ifs_3d.RenderIFS(m_3d_ifs_resources);
-			}
-		}
 
 		if (!m_rendering_2d) m_ifs_3d.RenderRaymarchedIfs(m_3d_ifs_resources, *m_2d_ifs_resources.p_final_render_tex);
 
@@ -152,13 +139,12 @@ extern "C" {
 		}
 
 
-		constexpr auto SHADER_PATH = "./res/shaders/Ifs.comp";
-		// Write out shader file for variant
-		FileCopy(SHADER_PATH, output_dir + "/Ifs.comp");
+		// Write out shader files for variant
+		FileCopy("./res/shaders/Ifs.comp", output_dir + "/Ifs.comp");
+		FileCopy("./res/shaders/Ifs3D.comp", output_dir + "/Ifs3D.comp");
 
 		//mp_bloom_pass->ResizeTexture(ceil(Window::GetWidth() * 0.5f), ceil(Window::GetHeight() * 0.5f));
 		m_render_framebuffer.BindTexture2D(m_2d_ifs_resources.p_final_render_tex->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
-
 	}
 
 	void IFS::OnImGuiRender() {
@@ -166,15 +152,34 @@ extern "C" {
 		if (ImGui::Begin("Menu", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
 			static std::string save_name;
 			ImGui::InputText("Save name", &save_name);
-
-			if (ImGui::Button("Save")) {
+			if (ImGui::Button("Render and save (2D Only)")) {
 				SaveVariant(save_name);
 			}
+			
+			if (ImGui::Checkbox("Rendering 2D", &m_rendering_2d)) {
+				// Clear viewport
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				GL_StateManager::DefaultClearBits();
+			}
 
-			ImGui::DragFloat("Bloom threshold", &mp_scene->post_processing.bloom.threshold);
-			ImGui::DragFloat("Bloom intensity", &mp_scene->post_processing.bloom.intensity);
-			ImGui::DragFloat("Brightness", &m_brightness, 0.1f, 0.f);
-			ImGui::Checkbox("Rendering 2D", &m_rendering_2d);
+			if (m_rendering_2d) {
+				ImGui::DragFloat("Bloom threshold", &mp_scene->post_processing.bloom.threshold);
+				ImGui::DragFloat("Bloom intensity", &mp_scene->post_processing.bloom.intensity);
+				ImGui::DragFloat("Brightness", &m_brightness, 0.1f, 0.f);
+				if (ImGui::Button("Generate 2D fractal")) {
+					m_ifs_2d.RenderIFS(m_2d_ifs_resources, m_brightness);
+					m_render_graph.Execute(); // Apply bloom
+				}
+			}
+			else {
+				if (ImGui::Button("Generate 3D fractal")) {
+					m_ifs_3d.RenderIFS(m_3d_ifs_resources);
+				}
+			}
+
+			if (ImGui::Button("Reload shaders")) {
+				Renderer::GetShaderLibrary().ReloadShaders();
+			}
 		}
 
 		ImGui::End();
